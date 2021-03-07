@@ -1,0 +1,71 @@
+﻿@page "/News/{Id:int}"
+@using RecyclingPlatform.Data
+@using Microsoft.EntityFrameworkCore
+@using RecyclingPlatform.Models
+@using System.Security.Claims
+@inject NavigationManager NavigationManager
+@inject ApplicationDbContext DbContext;
+
+<MudLink Href="/news">返回</MudLink>
+
+<h1>@News.Title</h1>
+<h2>@News.Content</h2>
+<h3>发布日期： @News.CreateTime</h3>
+<h4>作者: @News.Author.UserName</h4>
+
+<h1>评论区</h1>
+<AuthorizeView>
+    <Authorized>
+        <MudTextField T="string" Label="发表你的评论" Variant="Variant.Text" @bind-Value="@_replyText" Lines="5" />
+        <MudButton @onclick="AddReply" Variant="Variant.Filled" Color="Color.Primary">发布</MudButton>
+    </Authorized>
+    <NotAuthorized>
+        登录后可以参与评论
+        <MudButton Variant="Variant.Filled" Color="Color.Info" Link=@("/Identity/Account/Login?returnUrl=/"+NavigationManager.ToBaseRelativePath(NavigationManager.Uri))>登录</MudButton>
+    </NotAuthorized>
+</AuthorizeView>
+@foreach (var reply in News.Replies)
+{
+    <h3>评价内容：@reply.Content</h3>
+    <h3>作者：@reply.User.UserName</h3>
+    <h4>评价时间：@reply.CreateTime</h4>
+    <hr/>
+}
+
+@code {
+    
+    [Parameter] public int Id { get; set; }
+    [CascadingParameter] public Task<AuthenticationState> AuthenticationStateTask { get; set; }
+    
+    private Models.News News { get; set; }
+    private int _userId;
+    private string _replyText;
+    protected override void OnInitialized()
+    {
+        News = DbContext.News
+            .Include(n => n.Author)
+            .Include(n => n.Replies)
+                .ThenInclude(r => r.User)
+            .FirstOrDefault(n => n.Id == Id);
+        if (News == null)
+            NavigationManager.NavigateTo("/404");
+    }
+
+    private async void AddReply()
+    {
+        var state = await AuthenticationStateTask;
+        _userId = int.Parse(state.User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var reply = new Reply
+        {
+            Content = _replyText,
+            CreateTime = DateTime.Now,
+            Enabled = true,
+            NewsId = News.Id,
+            UserId = _userId
+        };
+        DbContext.Replies.Add(reply);
+        DbContext.SaveChanges();
+        _replyText = "";
+    }
+
+}

@@ -1,0 +1,20 @@
+﻿@page "/News"
+@using RecyclingPlatform.Data
+@inject ApplicationDbContext DbContext;
+
+<MudLink Href="/">回到首页</MudLink>
+<h3>查看环保资讯</h3>
+<ul>
+@{
+
+    var newsList = DbContext.News.ToList();
+    foreach (var news in newsList)
+    {
+        <li>
+            <MudLink href="@("/news/" + news.Id)">@(news.Title + "\t" + news.CreateTime)</MudLink>
+        </li>
+    }
+}
+</ul>
+@code {
+}

@@ -1,0 +1,25 @@
+﻿@page "/Activities"
+@attribute [Authorize]
+@using RecyclingPlatform.Data
+@inject ApplicationDbContext DbContext;
+
+<MudLink Href="/">回到首页</MudLink>
+<h3>查看环保资讯</h3>
+<ul>
+    @{
+
+        var activityList = DbContext.Activities.ToList();
+        foreach (var activity in activityList)
+        {
+            <li>
+                <MudLink href="@("/activity/" + activity.Id)">
+                    @(activity.Title + "\t" + activity.CreateTime)
+                </MudLink>
+            </li>
+        }
+    }
+</ul>
+
+@code {
+    
+}

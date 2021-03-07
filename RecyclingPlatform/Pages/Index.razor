@@ -1,0 +1,20 @@
+﻿@page "/"
+
+<h1>
+    欢迎来到环保平台
+</h1>
+你可以
+<MudButton Variant="Variant.Filled" Color="Color.Success" Link="/news">浏览环保资讯</MudButton>
+<AuthorizeView>
+    <Authorized>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Link="/requirement">发布回收需求</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Link="/activities">报名环保活动</MudButton>
+    </Authorized>
+</AuthorizeView>
+<LoginDisplay></LoginDisplay>
+
+@code{
+
+    Task<AuthenticationState> _task;
+
+}

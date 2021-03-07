@@ -1,0 +1,12 @@
+﻿<AuthorizeView>
+    <Authorized>
+        <h1>Hello, @context.User.Identity?.Name!</h1>
+        <MudButton Link="Identity/Account/Manage" Color="Color.Info" Variant="Variant.Filled">个人中心</MudButton>
+        <MudButton Link="Identity/Account/LogOut" Color="Color.Error" Variant="Variant.Filled" >退出系统</MudButton>
+    </Authorized>
+    <NotAuthorized>
+        <MudButton Link="Identity/Account/Register" Color="Color.Primary" Variant="Variant.Filled">注册</MudButton>
+        或
+        <MudButton Link="Identity/Account/Login" Color="Color.Dark" Variant="Variant.Filled">登录</MudButton>
+    </NotAuthorized>
+</AuthorizeView>

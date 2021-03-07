@@ -1,0 +1,132 @@
+﻿@page "/Activity/{Id:int}"
+@using RecyclingPlatform.Data
+@using Microsoft.EntityFrameworkCore
+@using RecyclingPlatform.Models
+@using System.Security.Claims
+@inject NavigationManager NavigationManager;
+@inject ApplicationDbContext DbContext;
+
+@{
+}
+
+<h1>活动名称：@Activity.Title</h1>
+<h2>活动详情：@Activity.Detail</h2>
+<h3>报名开始日期： @Activity.CreateTime</h3>
+<h3>报名结束日期： @Activity.EndTime</h3>
+<h3>活动日期： @Activity.ActiveTime</h3>
+
+@{
+    if (DateTime.Now > Activity.CreateTime && DateTime.Now < Activity.EndTime)
+    {
+        if (!_added)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddUser">
+                我要参加
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="RemoveUser">
+                取消报名
+            </MudButton>
+            
+        }
+    }
+    else
+    {
+        <h4>当前时间无法报名</h4>
+    }
+}
+<h1>已参加人员</h1>
+<ul>
+    @{
+        foreach (var activityUser in Activity.Users)
+        {
+            if (activityUser.Enabled)
+            {
+              <li>@activityUser.User.UserName</li>  
+            }
+        }
+    }
+</ul>
+
+@code {
+    
+    [Parameter] public int Id { get; set; }
+    [CascadingParameter] public Task<AuthenticationState> AuthenticationStateTask { get; set; }
+    private Activity Activity { get; set; }
+    [Inject] private IDialogService DialogService { get; set; }
+
+    AuthenticationState _state;
+    bool _added;
+    int _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Activity = DbContext.Activities
+            .Include(a => a.Users)
+            .ThenInclude(u=>u.User)
+            .FirstOrDefault(a=>a.Id == Id);
+        if (Activity == null)
+        {
+            NavigationManager.NavigateTo("/404");
+        }
+        _state = await AuthenticationStateTask;
+        _userId = int.Parse(_state.User.FindFirstValue(ClaimTypes.NameIdentifier));
+        _added = Activity.Users.Count(a => a.UserId == _userId && a.Enabled) == 1;
+        Console.WriteLine(_added);
+    }
+
+
+    private async void AddUser()
+    {
+        if (_added)
+        {
+            await DialogService.ShowMessageBox("报名失败", "你已报名过该活动");
+            return;
+        }
+        var activityUser = await DbContext.ActivityUsers.FirstOrDefaultAsync(au=>au.UserId == _userId && au.ActivityId == Id);
+        if (activityUser != null)
+        {
+            activityUser.Enabled = true;
+            DbContext.ActivityUsers.Update(activityUser);
+        }
+        else
+        {
+            activityUser = new ActivityUser
+            {
+                Enabled = true,
+                UserId = _userId,
+                ActivityId = Id
+            };
+            await DbContext.ActivityUsers.AddAsync(activityUser);
+        }
+        await DbContext.SaveChangesAsync();
+        
+        Activity = DbContext.Activities
+            .Include(a => a.Users)
+            .ThenInclude(u=>u.User)
+            .FirstOrDefault(a=>a.Id == Id);
+        await DialogService.ShowMessageBox("报名成功", "你已成功报名该活动");
+        _added = Activity.Users.Count(a => a.UserId == _userId && a.Enabled) == 1;
+        StateHasChanged();
+    }
+
+    private async void RemoveUser()
+    {
+        var activityUser = await DbContext.ActivityUsers.FirstOrDefaultAsync(au=>au.UserId == _userId && au.ActivityId == Id);
+        if (activityUser == null) return;
+        activityUser.Enabled = false;
+        DbContext.ActivityUsers.Update(activityUser);;
+        await DbContext.SaveChangesAsync();
+        
+        Activity = DbContext.Activities
+            .Include(a => a.Users)
+            .ThenInclude(u=>u.User)
+            .FirstOrDefault(a=>a.Id == Id);
+        await DialogService.ShowMessageBox("取消报名成功", "你已成功取消报名该活动");
+        _added = Activity.Users.Count(a => a.UserId == _userId && a.Enabled) == 1;
+        StateHasChanged();
+    }
+
+}
